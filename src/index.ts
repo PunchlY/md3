@@ -4,6 +4,7 @@ import { version } from "../package.json";
 import { parseArgs } from "util";
 import { argbFromHex, argbFromRgb, blueFromArgb, Cam16, DynamicColor, DynamicScheme, greenFromArgb, Hct, hexFromArgb, MaterialDynamicColors, QuantizerCelebi, redFromArgb, Score, TonalPalette, Variant } from "@material/material-color-utilities/typescript";
 import { ToneDeltaPair } from "@material/material-color-utilities/typescript/dynamiccolor/tone_delta_pair";
+import { ContrastCurve } from "@material/material-color-utilities/typescript/dynamiccolor/contrast_curve";
 import * as mathUtils from "@material/material-color-utilities/typescript/utils/math_utils";
 import { rgba } from "./png";
 
@@ -122,7 +123,16 @@ const theme = [
     scheme.colors.errorContainer(),
     scheme.colors.onErrorContainer(),
 
-    ...ansi(),
+    ...ansi_gray(),
+    ...ansi().flatMap((color) => [
+        color,
+        DynamicColor.fromPalette({
+            name: `on_${color.name}`,
+            palette: (scheme) => TonalPalette.fromHct(color.getHct(scheme)),
+            background: () => color,
+            contrastCurve: () => new ContrastCurve(6, 6, 7, 11),
+        })
+    ]),
 ].filter((c): c is DynamicColor => c !== undefined);
 
 if (values.preview) {
@@ -167,6 +177,8 @@ function variant(type: string | undefined) {
     }
 }
 
+type FromPaletteOptions = Parameters<typeof DynamicColor.fromPalette>[0];
+
 function dark(color: {
     [K in keyof MaterialDynamicColors]: MaterialDynamicColors[K] extends () => DynamicColor ? K : never
 }[keyof MaterialDynamicColors], rename: string) {
@@ -175,10 +187,10 @@ function dark(color: {
         palette: (scheme) => scheme.colors[color]().palette({ ...scheme, isDark: true } as DynamicScheme),
         tone: (scheme) => scheme.colors[color]().getTone({ ...scheme, isDark: true } as DynamicScheme),
         chromaMultiplier: (scheme) => scheme.colors[color]().chromaMultiplier?.({ ...scheme, isDark: true } as DynamicScheme) ?? 1,
-    } satisfies Parameters<typeof DynamicColor.fromPalette>[0];
+    } satisfies FromPaletteOptions;
 }
 
-function* ansi() {
+function* ansi_gray() {
     const black = DynamicColor.fromPalette(dark("surface", "black"));
     const white = DynamicColor.fromPalette(dark("onSurface", "white"));
     const gray = DynamicColor.fromPalette({
@@ -196,9 +208,24 @@ function* ansi() {
     yield gray;
     yield white;
     yield white_bright;
+}
+
+function* ansi() {
+    const red = DynamicColor.fromPalette({
+        name: "red",
+        palette: (scheme) => TonalPalette.fromHct(scheme.colors.error().getHct(scheme)),
+        tone: (scheme) => scheme.colors.error().getTone(scheme),
+    });
+    const red_bright = DynamicColor.fromPalette({
+        name: "red_bright",
+        palette: (scheme) => TonalPalette.fromHct(red.getHct(scheme)),
+        toneDeltaPair: () => new ToneDeltaPair(red_bright, red, 10, "lighter", true, "farther"),
+    });
+    yield red;
+    yield red_bright;
 
     for (const [name, hue] of Object.entries({
-        red: 30,
+        // red: 30,
         green: 145,
         yellow: 85,
         blue: 265,
@@ -216,7 +243,7 @@ function* ansi() {
                     scheme.errorPalette.chroma,
                 );
             },
-            tone: (scheme) => gray.getTone(scheme),
+            tone: (scheme) => scheme.colors.error().getTone(scheme),
         });
         const bright = DynamicColor.fromPalette({
             name: `${name}_bright`,
