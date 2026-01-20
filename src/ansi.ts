@@ -101,7 +101,7 @@ export class Ansi {
 
         yield* new this(
             "red",
-            (scheme) => TonalPalette.fromHct(scheme.colors.error().getHct(scheme)),
+            (scheme) => scheme.errorPalette,
         );
 
         for (const [name, hue] of Object.entries({
