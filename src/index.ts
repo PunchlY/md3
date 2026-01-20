@@ -48,7 +48,82 @@ const scheme = new DynamicScheme({
 
 const output = values.output ? Bun.file(values.output) : Bun.stdout;
 
-const theme = [...scheme.colors.allColors, ...ansi()];
+const theme = [
+    scheme.colors.primaryPaletteKeyColor(),
+    scheme.colors.secondaryPaletteKeyColor(),
+    scheme.colors.tertiaryPaletteKeyColor(),
+    scheme.colors.neutralPaletteKeyColor(),
+    scheme.colors.neutralVariantPaletteKeyColor(),
+    scheme.colors.errorPaletteKeyColor(),
+
+    scheme.colors.background(),
+    scheme.colors.onBackground(),
+
+    scheme.colors.surface(),
+    scheme.colors.surfaceDim(),
+    scheme.colors.surfaceBright(),
+
+    scheme.colors.surfaceContainerLowest(),
+    scheme.colors.surfaceContainerLow(),
+    scheme.colors.surfaceContainer(),
+    scheme.colors.surfaceContainerHigh(),
+    scheme.colors.surfaceContainerHighest(),
+
+    scheme.colors.onSurface(),
+    scheme.colors.surfaceVariant(),
+    scheme.colors.onSurfaceVariant(),
+
+    scheme.colors.outline(),
+    scheme.colors.outlineVariant(),
+
+    scheme.colors.inverseSurface(),
+    scheme.colors.inverseOnSurface(),
+
+    scheme.colors.shadow(),
+    scheme.colors.scrim(),
+    scheme.colors.surfaceTint(),
+
+    scheme.colors.primary(),
+    scheme.colors.primaryDim(),
+    scheme.colors.onPrimary(),
+    scheme.colors.primaryContainer(),
+    scheme.colors.onPrimaryContainer(),
+    scheme.colors.inversePrimary(),
+
+    scheme.colors.primaryFixed(),
+    scheme.colors.primaryFixedDim(),
+    scheme.colors.onPrimaryFixed(),
+    scheme.colors.onPrimaryFixedVariant(),
+    scheme.colors.secondary(),
+    scheme.colors.secondaryDim(),
+    scheme.colors.onSecondary(),
+    scheme.colors.secondaryContainer(),
+    scheme.colors.onSecondaryContainer(),
+
+    scheme.colors.secondaryFixed(),
+    scheme.colors.secondaryFixedDim(),
+    scheme.colors.onSecondaryFixed(),
+    scheme.colors.onSecondaryFixedVariant(),
+
+    scheme.colors.tertiary(),
+    scheme.colors.tertiaryDim(),
+    scheme.colors.onTertiary(),
+    scheme.colors.tertiaryContainer(),
+    scheme.colors.onTertiaryContainer(),
+
+    scheme.colors.tertiaryFixed(),
+    scheme.colors.tertiaryFixedDim(),
+    scheme.colors.onTertiaryFixed(),
+    scheme.colors.onTertiaryFixedVariant(),
+
+    scheme.colors.error(),
+    scheme.colors.errorDim(),
+    scheme.colors.onError(),
+    scheme.colors.errorContainer(),
+    scheme.colors.onErrorContainer(),
+
+    ...ansi(),
+].filter((c): c is DynamicColor => c !== undefined);
 
 if (values.preview) {
     for (const color of theme) {
