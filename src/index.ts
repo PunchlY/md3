@@ -127,15 +127,15 @@ const theme = [
 
 if (values.preview) {
     for (const color of theme) {
-        const bg_hct = color.getHct(scheme);
-        const bg = rgbFromArgb(bg_hct.toInt());
+        const hct = color.getHct(scheme);
+        const bg = rgbFromArgb(hct.toInt());
         const fg = rgbFromArgb(Hct.from(
-            bg_hct.hue,
-            bg_hct.chroma,
-            DynamicColor.foregroundTone(bg_hct.tone, 7.5),
+            hct.hue,
+            hct.chroma,
+            DynamicColor.foregroundTone(hct.tone, 7.5),
         ).toInt());
 
-        console.error(`\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[2K%s %s\x1b[0m`, hexFromArgb(bg_hct.toInt()), color.name);
+        console.error(`\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[2K%s %s\x1b[0m`, toJson(values.json, hct), color.name);
     }
 }
 
@@ -196,7 +196,9 @@ function toJson(type: string, color: Hct) {
         case "argb":
             return color.toInt();
         case "rgb":
-            return color.toInt() >> 8;
+            return color.toInt() >>> 8;
+        case "hct":
+            return color.toString();
         default:
             throw new Error(`Unknown json type: ${JSON.stringify(type)}.`);
     }
