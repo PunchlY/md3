@@ -25,21 +25,21 @@ export class Ansi {
     static gray() {
         return DynamicColor.fromPalette({
             name: "gray",
-            palette: (scheme) => TonalPalette.fromHct(this.black().getHct(scheme)),
+            palette: (scheme) => TonalPalette.fromHct(this.white().getHct(scheme)),
             tone: (scheme) => scheme.colors.error().getTone(scheme),
         });
     }
     static white_bright(): DynamicColor {
         return DynamicColor.fromPalette({
             name: "white_bright",
-            palette: (scheme) => TonalPalette.fromHct(this.black().getHct(scheme)),
-            toneDeltaPair: () => new ToneDeltaPair(this.white_bright(), this.white(), 10, "lighter", true),
+            palette: (scheme) => TonalPalette.fromHct(this.white().getHct(scheme)),
+            toneDeltaPair: () => new ToneDeltaPair(this.white_bright(), this.white(), 5, "lighter", true, "farther"),
         });
     }
 
     constructor(
         readonly name: string,
-        readonly palette: (scheme: DynamicScheme) => TonalPalette,
+        private palette: (scheme: DynamicScheme) => TonalPalette,
     ) { }
 
     regular() {
@@ -63,7 +63,7 @@ export class Ansi {
         return DynamicColor.fromPalette({
             name: `${this.name}_bright`,
             palette: this.palette,
-            toneDeltaPair: () => new ToneDeltaPair(this.bright(), this.regular(), 10, "lighter", true, "farther"),
+            toneDeltaPair: () => new ToneDeltaPair(this.bright(), this.regular(), 5, "lighter", true, "farther"),
         });
     }
 
@@ -99,10 +99,7 @@ export class Ansi {
         yield this.gray();
         yield this.white_bright();
 
-        yield* new this(
-            "red",
-            (scheme) => scheme.errorPalette,
-        );
+        yield* new this("red", (scheme) => scheme.errorPalette);
 
         for (const [name, hue] of Object.entries({
             // red: 30,

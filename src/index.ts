@@ -12,6 +12,7 @@ const { values } = parseArgs({
         source: { type: "string" },
         image: { type: "string" },
         output: { type: "string" },
+        json: { type: "string", default: "hex" },
 
         preview: { type: "boolean", default: false },
 
@@ -138,7 +139,7 @@ if (values.preview) {
     }
 }
 
-await output.write(JSON.stringify(Object.fromEntries(theme.map((color) => [color.name, hexFromArgb(color.getArgb(scheme))]))));
+await output.write(JSON.stringify(Object.fromEntries(theme.map((color) => [color.name, toJson(values.json, color.getHct(scheme))]))));
 
 function variant(type: string | undefined) {
     switch (type) {
@@ -162,7 +163,7 @@ function variant(type: string | undefined) {
         case undefined:
             return Variant.TONAL_SPOT;
         default:
-            throw new Error(`Unknown variant type: "${type}". Expected one of: monochrome, neutral, vibrant, expressive, fidelity, content, rainbow, fruit-salad, tonal-spot.`);
+            throw new Error(`Unknown variant type: ${JSON.stringify(type)}. Expected one of: monochrome, neutral, vibrant, expressive, fidelity, content, rainbow, fruit-salad, tonal-spot.`);
     }
 }
 
@@ -186,4 +187,15 @@ function rgbFromArgb(argb: number) {
         g: greenFromArgb(argb),
         b: blueFromArgb(argb),
     };
+}
+
+function toJson(type: string, color: Hct) {
+    switch (type) {
+        case "hex":
+            return hexFromArgb(color.toInt());
+        case "argb":
+            return color.toInt();
+        default:
+            throw new Error(`Unknown json type: ${JSON.stringify(type)}.`);
+    }
 }
