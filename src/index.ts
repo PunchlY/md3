@@ -199,14 +199,19 @@ function toJson(type: string, color: Hct) {
             return color.toInt() >>> 8;
         case "{rgb}":
             return rgbFromArgb(color.toInt());
+        case "[rgb]":
+            const { r, g, b } = rgbFromArgb(color.toInt());
+            return [r, g, b];
         case "hct":
             return color.toString();
         case "{hct}":
             return {
-                hue: color.hue,
-                chroma: color.chroma,
-                tone: color.tone,
+                h: color.hue,
+                c: color.chroma,
+                t: color.tone,
             };
+        case "[hct]":
+            return [color.hue, color.chroma, color.tone];
         default:
             throw new Error(`Unknown json type: ${JSON.stringify(type)}.`);
     }
