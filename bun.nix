@@ -13,17 +13,17 @@
   ...
 }:
 {
-  "@types/bun@1.3.6" = fetchurl {
-    url = "https://registry.npmjs.org/@types/bun/-/bun-1.3.6.tgz";
-    hash = "sha512-uWCv6FO/8LcpREhenN1d1b6fcspAB+cefwD7uti8C8VffIv0Um08TKMn98FynpTiU38+y2dUO55T11NgDt8VAA==";
+  "@types/bun@1.3.8" = fetchurl {
+    url = "https://registry.npmjs.org/@types/bun/-/bun-1.3.8.tgz";
+    hash = "sha512-3LvWJ2q5GerAXYxO2mffLTqOzEu5qnhEAlh48Vnu8WQfnmSwbgagjGZV6BoHKJztENYEDn6QmVd949W4uESRJA==";
   };
   "@types/node@25.0.9" = fetchurl {
     url = "https://registry.npmjs.org/@types/node/-/node-25.0.9.tgz";
     hash = "sha512-/rpCXHlCWeqClNBwUhDcusJxXYDjZTyE8v5oTO7WbL8eij2nKhUeU89/6xgjU7N4/Vh3He0BtyhJdQbDyhiXAw==";
   };
-  "bun-types@1.3.6" = fetchurl {
-    url = "https://registry.npmjs.org/bun-types/-/bun-types-1.3.6.tgz";
-    hash = "sha512-OlFwHcnNV99r//9v5IIOgQ9Uk37gZqrNMCcqEaExdkVq3Avwqok1bJFmvGMCkCE0FqzdY8VMOZpfpR3lwI+CsQ==";
+  "bun-types@1.3.8" = fetchurl {
+    url = "https://registry.npmjs.org/bun-types/-/bun-types-1.3.8.tgz";
+    hash = "sha512-fL99nxdOWvV4LqjmC+8Q9kW3M4QTtTR1eePs94v5ctGqU8OeceWrSUaRw3JYb7tU3FkMIAjkueehrHPPPGKi5Q==";
   };
   "fast-png@8.0.0" = fetchurl {
     url = "https://registry.npmjs.org/fast-png/-/fast-png-8.0.0.tgz";
@@ -33,11 +33,11 @@
     url = "https://registry.npmjs.org/fflate/-/fflate-0.8.2.tgz";
     hash = "sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==";
   };
-  "github:material-foundation-material-color-utilities-b03ef34" = fetchFromGitHub {
+  "github:material-foundation-material-color-utilities-eeaf82b" = fetchFromGitHub {
     owner = "material-foundation";
     repo = "material-color-utilities";
-    rev = "b03ef34";
-    hash = "sha256-0/gEH6eIN1JZxmo4Qeyndv5WI0UOBFQ1hC8RVj9b3dQ=";
+    rev = "eeaf82b";
+    hash = "sha256-AD+7roOvj0lYM1y4wwRmplg8iiJeMGzIqPG9SXvbBvw=";
   };
   "iobuffer@6.0.1" = fetchurl {
     url = "https://registry.npmjs.org/iobuffer/-/iobuffer-6.0.1.tgz";
