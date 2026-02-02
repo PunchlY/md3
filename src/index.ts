@@ -135,7 +135,7 @@ if (values.preview) {
             DynamicColor.foregroundTone(hct.tone, 7.5),
         ).toInt());
 
-        console.error(`\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[2K%s %s\x1b[0m`, toJson(values.json, hct), color.name);
+        console.error(`\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[2K%j %s\x1b[0m`, toJson(values.json, hct), color.name);
     }
 }
 
