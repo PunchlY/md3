@@ -195,6 +195,8 @@ function toJson(type: string, color: Hct) {
             return hexFromArgb(color.toInt());
         case "argb":
             return color.toInt();
+        case "rgb":
+            return color.toInt() >> 8;
         default:
             throw new Error(`Unknown json type: ${JSON.stringify(type)}.`);
     }
