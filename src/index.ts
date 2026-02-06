@@ -47,84 +47,122 @@ const scheme = new DynamicScheme({
 
 const output = values.output ? Bun.file(values.output) : Bun.stdout;
 
-const theme = [
-    scheme.colors.primaryPaletteKeyColor(),
-    scheme.colors.secondaryPaletteKeyColor(),
-    scheme.colors.tertiaryPaletteKeyColor(),
-    scheme.colors.neutralPaletteKeyColor(),
-    scheme.colors.neutralVariantPaletteKeyColor(),
-    scheme.colors.errorPaletteKeyColor(),
+const { colors } = scheme;
 
-    scheme.colors.background(),
-    scheme.colors.onBackground(),
+const theme = new Map<string, Hct>();
+for (const color of [
+    colors.primaryPaletteKeyColor(),
+    colors.secondaryPaletteKeyColor(),
+    colors.tertiaryPaletteKeyColor(),
+    colors.neutralPaletteKeyColor(),
+    colors.neutralVariantPaletteKeyColor(),
+    colors.errorPaletteKeyColor(),
 
-    scheme.colors.surface(),
-    scheme.colors.surfaceDim(),
-    scheme.colors.surfaceBright(),
+    colors.background(),
+    colors.onBackground(),
 
-    scheme.colors.surfaceContainerLowest(),
-    scheme.colors.surfaceContainerLow(),
-    scheme.colors.surfaceContainer(),
-    scheme.colors.surfaceContainerHigh(),
-    scheme.colors.surfaceContainerHighest(),
+    colors.surface(),
+    colors.surfaceDim(),
+    colors.surfaceBright(),
 
-    scheme.colors.onSurface(),
-    scheme.colors.surfaceVariant(),
-    scheme.colors.onSurfaceVariant(),
+    colors.surfaceContainerLowest(),
+    colors.surfaceContainerLow(),
+    colors.surfaceContainer(),
+    colors.surfaceContainerHigh(),
+    colors.surfaceContainerHighest(),
 
-    scheme.colors.outline(),
-    scheme.colors.outlineVariant(),
+    colors.onSurface(),
+    colors.surfaceVariant(),
+    colors.onSurfaceVariant(),
 
-    scheme.colors.inverseSurface(),
-    scheme.colors.inverseOnSurface(),
+    colors.outline(),
+    colors.outlineVariant(),
 
-    scheme.colors.shadow(),
-    scheme.colors.scrim(),
-    scheme.colors.surfaceTint(),
+    colors.inverseSurface(),
+    colors.inverseOnSurface(),
 
-    scheme.colors.primary(),
-    scheme.colors.primaryDim(),
-    scheme.colors.onPrimary(),
-    scheme.colors.primaryContainer(),
-    scheme.colors.onPrimaryContainer(),
-    scheme.colors.inversePrimary(),
+    colors.shadow(),
+    colors.scrim(),
+    colors.surfaceTint(),
 
-    scheme.colors.primaryFixed(),
-    scheme.colors.primaryFixedDim(),
-    scheme.colors.onPrimaryFixed(),
-    scheme.colors.onPrimaryFixedVariant(),
-    scheme.colors.secondary(),
-    scheme.colors.secondaryDim(),
-    scheme.colors.onSecondary(),
-    scheme.colors.secondaryContainer(),
-    scheme.colors.onSecondaryContainer(),
+    colors.primary(),
+    colors.primaryDim(),
+    colors.onPrimary(),
+    colors.primaryContainer(),
+    colors.onPrimaryContainer(),
+    colors.inversePrimary(),
 
-    scheme.colors.secondaryFixed(),
-    scheme.colors.secondaryFixedDim(),
-    scheme.colors.onSecondaryFixed(),
-    scheme.colors.onSecondaryFixedVariant(),
+    colors.primaryFixed(),
+    colors.primaryFixedDim(),
+    colors.onPrimaryFixed(),
+    colors.onPrimaryFixedVariant(),
+    colors.secondary(),
+    colors.secondaryDim(),
+    colors.onSecondary(),
+    colors.secondaryContainer(),
+    colors.onSecondaryContainer(),
 
-    scheme.colors.tertiary(),
-    scheme.colors.tertiaryDim(),
-    scheme.colors.onTertiary(),
-    scheme.colors.tertiaryContainer(),
-    scheme.colors.onTertiaryContainer(),
+    colors.secondaryFixed(),
+    colors.secondaryFixedDim(),
+    colors.onSecondaryFixed(),
+    colors.onSecondaryFixedVariant(),
 
-    scheme.colors.tertiaryFixed(),
-    scheme.colors.tertiaryFixedDim(),
-    scheme.colors.onTertiaryFixed(),
-    scheme.colors.onTertiaryFixedVariant(),
+    colors.tertiary(),
+    colors.tertiaryDim(),
+    colors.onTertiary(),
+    colors.tertiaryContainer(),
+    colors.onTertiaryContainer(),
 
-    scheme.colors.error(),
-    scheme.colors.errorDim(),
-    scheme.colors.onError(),
-    scheme.colors.errorContainer(),
-    scheme.colors.onErrorContainer(),
-]
-    .filter((color) => color !== undefined)
-    .map((color) => [color.name, color.getHct(scheme)] as const);
+    colors.tertiaryFixed(),
+    colors.tertiaryFixedDim(),
+    colors.onTertiaryFixed(),
+    colors.onTertiaryFixedVariant(),
 
-theme.push(...ansi(scheme));
+    colors.error(),
+    colors.errorDim(),
+    colors.onError(),
+    colors.errorContainer(),
+    colors.onErrorContainer(),
+]) {
+    if (!color)
+        continue;
+    theme.set(color.name, color.getHct(scheme));
+}
+
+theme.set("black", colors.surface().getHct({
+    ...scheme,
+    isDark: true,
+} as DynamicScheme));
+theme.set("white", colors.onSurface().getHct({
+    ...scheme,
+    isDark: true,
+} as DynamicScheme));
+theme.set("gray", colors.outline().getHct(scheme));
+theme.set("white_bright", colors.inverseSurface().getHct({
+    ...scheme,
+    isDark: true,
+} as DynamicScheme));
+
+for (const [name, palette] of ansiPalette(scheme)) {
+    for (const color of [
+        colors.errorPaletteKeyColor(),
+        colors.error(),
+        colors.errorDim(),
+        colors.onError(),
+        colors.errorContainer(),
+        colors.onErrorContainer(),
+    ]) {
+        if (!color)
+            continue;
+        theme.set(
+            color.name.replace("error", name),
+            color.getHct({
+                ...scheme,
+                errorPalette: palette,
+            } as DynamicScheme),
+        );
+    }
+}
 
 if (values.preview) {
     for (const [name, hct] of theme) {
@@ -139,7 +177,14 @@ if (values.preview) {
     }
 }
 
-await output.write(JSON.stringify(Object.fromEntries(theme.map(([name, hct]) => [name, toJson(values.json, hct)]))));
+await output.write(JSON.stringify(
+    Object.fromEntries(
+        theme.entries().map(([name, hct]) => [
+            name,
+            toJson(values.json, hct),
+        ]),
+    ),
+));
 
 function variant(type: string | undefined) {
     switch (type) {
@@ -218,10 +263,12 @@ function toJson(type: string, color: Hct) {
 }
 
 function* ansiPalette(scheme: DynamicScheme): Generator<[string, TonalPalette]> {
-    yield ["red", scheme.errorPalette];
+    const palettes = new Map<string, TonalPalette>();
+
+    palettes.set("red", scheme.errorPalette);
 
     for (const [name, hue] of Object.entries({
-        // red: 25,
+        red: 25,
         green: 145,
         yellow: 85,
         blue: 265,
@@ -230,44 +277,15 @@ function* ansiPalette(scheme: DynamicScheme): Generator<[string, TonalPalette]> 
         orange: 55,
         purple: 325,
     })) {
+        if (palettes.has(name)) {
+            yield [name, palettes.get(name)!];
+            continue;
+        }
         const rotationDegrees = Math.min(differenceDegrees(hue, scheme.sourceColorHct.hue) * 0.5, 15.0);
         const outputHue = sanitizeDegreesDouble(hue + rotationDegrees * rotationDirection(hue, scheme.primaryPalette.hue));
         yield [name, TonalPalette.fromHueAndChroma(
             outputHue,
             scheme.errorPalette.chroma,
         )];
-    }
-}
-
-function* ansi(scheme: DynamicScheme) {
-    const { colors } = scheme;
-    yield ["black", colors.surface().getHct({
-        ...scheme,
-        isDark: true,
-    } as DynamicScheme)] as const;
-    yield ["white", colors.onSurface().getHct({
-        ...scheme,
-        isDark: true,
-    } as DynamicScheme)] as const;
-    yield ["gray", colors.outline().getHct(scheme)] as const;
-    yield ["white_bright", colors.inverseSurface().getHct({
-        ...scheme,
-        isDark: true,
-    } as DynamicScheme)] as const;
-    for (const [name, palette] of ansiPalette(scheme)) {
-        yield* [
-            colors.errorPaletteKeyColor(),
-            colors.error(),
-            colors.errorDim() ?? colors.error(),
-            colors.onError(),
-            colors.errorContainer(),
-            colors.onErrorContainer(),
-        ].map((color) => [
-            color.name.replace(/error/, name),
-            color.getHct({
-                ...scheme,
-                errorPalette: palette,
-            } as DynamicScheme),
-        ] as const);
     }
 }
