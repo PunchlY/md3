@@ -13,6 +13,10 @@
   ...
 }:
 {
+  "@material/material-color-utilities@0.4.0" = fetchurl {
+    url = "https://registry.npmjs.org/@material/material-color-utilities/-/material-color-utilities-0.4.0.tgz";
+    hash = "sha512-dlq6VExJReb8dhjj3a/yTigr3ncNwoFmL5Iy2ENtbDX03EmNeOEdZ+vsaGrj7RTuO+mB7L58II4LCsl4NpM8uw==";
+  };
   "@types/bun@1.3.8" = fetchurl {
     url = "https://registry.npmjs.org/@types/bun/-/bun-1.3.8.tgz";
     hash = "sha512-3LvWJ2q5GerAXYxO2mffLTqOzEu5qnhEAlh48Vnu8WQfnmSwbgagjGZV6BoHKJztENYEDn6QmVd949W4uESRJA==";
@@ -32,12 +36,6 @@
   "fflate@0.8.2" = fetchurl {
     url = "https://registry.npmjs.org/fflate/-/fflate-0.8.2.tgz";
     hash = "sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==";
-  };
-  "github:material-foundation-material-color-utilities-eeaf82b" = fetchFromGitHub {
-    owner = "material-foundation";
-    repo = "material-color-utilities";
-    rev = "eeaf82b";
-    hash = "sha256-AD+7roOvj0lYM1y4wwRmplg8iiJeMGzIqPG9SXvbBvw=";
   };
   "iobuffer@6.0.1" = fetchurl {
     url = "https://registry.npmjs.org/iobuffer/-/iobuffer-6.0.1.tgz";

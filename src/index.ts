@@ -2,9 +2,8 @@
 
 import { version } from "../package.json";
 import { parseArgs } from "util";
-import { argbFromHex, argbFromRgb, blueFromArgb, Cam16, DynamicColor, DynamicScheme, greenFromArgb, Hct, hexFromArgb, QuantizerCelebi, redFromArgb, Score, Variant } from "@material/material-color-utilities/typescript";
+import { argbFromHex, argbFromRgb, blueFromArgb, Cam16, differenceDegrees, DynamicColor, DynamicScheme, greenFromArgb, Hct, hexFromArgb, QuantizerCelebi, redFromArgb, rotationDirection, sanitizeDegreesDouble, Score, TonalPalette, Variant } from "@material/material-color-utilities";
 import { rgba } from "./png";
-import { ansiGenerator } from "./ansi";
 
 const { values } = parseArgs({
     args: process.argv.slice(2),
@@ -121,13 +120,14 @@ const theme = [
     scheme.colors.onError(),
     scheme.colors.errorContainer(),
     scheme.colors.onErrorContainer(),
+]
+    .filter((color) => color !== undefined)
+    .map((color) => [color.name, color.getHct(scheme)] as const);
 
-    ...ansiGenerator(),
-].filter((c): c is DynamicColor => c !== undefined);
+theme.push(...ansi(scheme));
 
 if (values.preview) {
-    for (const color of theme) {
-        const hct = color.getHct(scheme);
+    for (const [name, hct] of theme) {
         const bg = rgbFromArgb(hct.toInt());
         const fg = rgbFromArgb(Hct.from(
             hct.hue,
@@ -135,11 +135,11 @@ if (values.preview) {
             DynamicColor.foregroundTone(hct.tone, 7.5),
         ).toInt());
 
-        console.error(`\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[2K%j %s\x1b[0m`, toJson(values.json, hct), color.name);
+        console.error(`\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[2K%j %s\x1b[0m`, toJson(values.json, hct), name);
     }
 }
 
-await output.write(JSON.stringify(Object.fromEntries(theme.map((color) => [color.name, toJson(values.json, color.getHct(scheme))]))));
+await output.write(JSON.stringify(Object.fromEntries(theme.map(([name, hct]) => [name, toJson(values.json, hct)]))));
 
 function variant(type: string | undefined) {
     switch (type) {
@@ -214,5 +214,60 @@ function toJson(type: string, color: Hct) {
             return [color.hue, color.chroma, color.tone];
         default:
             throw new Error(`Unknown json type: ${JSON.stringify(type)}.`);
+    }
+}
+
+function* ansiPalette(scheme: DynamicScheme): Generator<[string, TonalPalette]> {
+    yield ["red", scheme.errorPalette];
+
+    for (const [name, hue] of Object.entries({
+        // red: 25,
+        green: 145,
+        yellow: 85,
+        blue: 265,
+        magenta: 355,
+        cyan: 205,
+        orange: 55,
+        purple: 325,
+    })) {
+        const rotationDegrees = Math.min(differenceDegrees(hue, scheme.sourceColorHct.hue) * 0.5, 15.0);
+        const outputHue = sanitizeDegreesDouble(hue + rotationDegrees * rotationDirection(hue, scheme.primaryPalette.hue));
+        yield [name, TonalPalette.fromHueAndChroma(
+            outputHue,
+            scheme.errorPalette.chroma,
+        )];
+    }
+}
+
+function* ansi(scheme: DynamicScheme) {
+    const { colors } = scheme;
+    yield ["dark", colors.surface().getHct({
+        ...scheme,
+        isDark: true,
+    } as DynamicScheme)] as const;
+    yield ["white", colors.onSurface().getHct({
+        ...scheme,
+        isDark: true,
+    } as DynamicScheme)] as const;
+    yield ["gray", colors.outline().getHct(scheme)] as const;
+    yield ["white_bright", colors.inverseSurface().getHct({
+        ...scheme,
+        isDark: true,
+    } as DynamicScheme)] as const;
+    for (const [name, palette] of ansiPalette(scheme)) {
+        yield* [
+            colors.errorPaletteKeyColor(),
+            colors.error(),
+            colors.errorDim() ?? colors.error(),
+            colors.onError(),
+            colors.errorContainer(),
+            colors.onErrorContainer(),
+        ].map((color) => [
+            color.name.replace(/^error/, name),
+            color.getHct({
+                ...scheme,
+                errorPalette: palette,
+            } as DynamicScheme),
+        ] as const);
     }
 }
