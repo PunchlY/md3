@@ -4,7 +4,7 @@ import { version } from "../package.json";
 import { parseArgs } from "util";
 import { argbFromHex, argbFromRgb, blueFromArgb, Cam16, DynamicColor, DynamicScheme, greenFromArgb, Hct, hexFromArgb, QuantizerCelebi, redFromArgb, Score, Variant } from "@material/material-color-utilities/typescript";
 import { rgba } from "./png";
-import { Ansi } from "./ansi";
+import { ansiGenerator } from "./ansi";
 
 const { values } = parseArgs({
     args: process.argv.slice(2),
@@ -122,7 +122,7 @@ const theme = [
     scheme.colors.errorContainer(),
     scheme.colors.onErrorContainer(),
 
-    ...Ansi,
+    ...ansiGenerator(),
 ].filter((c): c is DynamicColor => c !== undefined);
 
 if (values.preview) {

@@ -15,21 +15,24 @@ function dark(color: {
     } satisfies FromPaletteOptions;
 }
 
-export class Ansi {
-    static black() {
+class GrayAnsi {
+    black() {
         return DynamicColor.fromPalette(dark("surface", "black"));
     }
-    static white() {
+
+    white() {
         return DynamicColor.fromPalette(dark("onSurface", "white"));
     }
-    static gray() {
+
+    gray() {
         return DynamicColor.fromPalette({
             name: "gray",
             palette: (scheme) => TonalPalette.fromHct(this.white().getHct(scheme)),
             tone: (scheme) => scheme.colors.error().getTone(scheme),
         });
     }
-    static white_bright(): DynamicColor {
+
+    white_bright(): DynamicColor {
         return DynamicColor.fromPalette({
             name: "white_bright",
             palette: (scheme) => TonalPalette.fromHct(this.white().getHct(scheme)),
@@ -37,10 +40,27 @@ export class Ansi {
         });
     }
 
+    *[Symbol.iterator]() {
+        yield this.black();
+        yield this.white();
+        yield this.gray();
+        yield this.white_bright();
+    }
+}
+
+class Ansi {
     constructor(
         readonly name: string,
         private palette: (scheme: DynamicScheme) => TonalPalette,
     ) { }
+
+    palette_key_color() {
+        return DynamicColor.fromPalette({
+            name: `${this.name}_palette_key_color`,
+            palette: this.palette,
+            tone: (s) => s.errorPalette.keyColor.tone,
+        });
+    }
 
     regular() {
         return DynamicColor.fromPalette({
@@ -85,43 +105,41 @@ export class Ansi {
     }
 
     *[Symbol.iterator]() {
+        yield this.palette_key_color();
         yield this.regular();
         yield this.onRegular();
         yield this.bright();
         yield this.container();
         yield this.onContainer();
     }
+}
 
-    static *[Symbol.iterator]() {
+export function* ansiGenerator() {
+    yield* new GrayAnsi();
 
-        yield this.black();
-        yield this.white();
-        yield this.gray();
-        yield this.white_bright();
+    yield* new Ansi("red", (scheme) => scheme.errorPalette);
 
-        yield* new this("red", (scheme) => scheme.errorPalette);
-
-        for (const [name, hue] of Object.entries({
-            // red: 30,
-            green: 145,
-            yellow: 85,
-            blue: 265,
-            magenta: 325,
-            cyan: 205,
-        })) {
-            yield* new this(
-                name,
-                (scheme) => {
-                    const differenceDegrees = mathUtils.differenceDegrees(hue, scheme.primaryPalette.hue);
-                    const rotationDegrees = Math.min(differenceDegrees * 0.5, 15.0);
-                    const outputHue = mathUtils.sanitizeDegreesDouble(hue + rotationDegrees * mathUtils.rotationDirection(hue, scheme.primaryPalette.hue));
-                    return TonalPalette.fromHueAndChroma(
-                        outputHue,
-                        scheme.errorPalette.chroma,
-                    );
-                },
-            );
-        }
+    for (const [name, hue] of Object.entries({
+        // red: 25,
+        green: 145,
+        yellow: 85,
+        blue: 265,
+        magenta: 355,
+        cyan: 205,
+        orange: 55,
+        purple: 325,
+    })) {
+        yield* new Ansi(
+            name,
+            (scheme) => {
+                const differenceDegrees = mathUtils.differenceDegrees(hue, scheme.primaryPalette.hue);
+                const rotationDegrees = Math.min(differenceDegrees * 0.5, 15.0);
+                const outputHue = mathUtils.sanitizeDegreesDouble(hue + rotationDegrees * mathUtils.rotationDirection(hue, scheme.primaryPalette.hue));
+                return TonalPalette.fromHueAndChroma(
+                    outputHue,
+                    scheme.errorPalette.chroma,
+                );
+            },
+        );
     }
-
 }
