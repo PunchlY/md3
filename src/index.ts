@@ -2,7 +2,7 @@
 
 import { version } from "../package.json";
 import { parseArgs } from "util";
-import { argbFromHex, argbFromRgb, blueFromArgb, Cam16, differenceDegrees, DynamicColor, DynamicScheme, greenFromArgb, Hct, hexFromArgb, QuantizerCelebi, redFromArgb, rotationDirection, sanitizeDegreesDouble, Score, TonalPalette, Variant } from "@material/material-color-utilities";
+import { argbFromHex, argbFromRgb, Blend, blueFromArgb, Cam16, DynamicColor, DynamicScheme, greenFromArgb, Hct, hexFromArgb, QuantizerCelebi, redFromArgb, Score, TonalPalette, Variant } from "@material/material-color-utilities";
 import { rgba } from "./png";
 
 const { values } = parseArgs({
@@ -24,24 +24,22 @@ const { values } = parseArgs({
 });
 
 if (values.version) {
-    console.log(version);
+    console.log("%s", version);
     process.exit();
 }
 
-const isDark = values.dark;
-const contrastLevel = values.contrast
-    ? parseFloat(values.contrast)
-    : 0;
-
-const source = values.source
-    ? argbFromHex(values.source)
-    : await sourceColor(values.image ? Bun.file(values.image) : Bun.stdin);
-
 const scheme = new DynamicScheme({
-    sourceColorHct: Hct.fromInt(source),
+    sourceColorHct: values.source
+        ? parseColor(values.source)
+        : await sourceColor(values.image
+            ? Bun.file(values.image)
+            : Bun.stdin,
+        ),
     variant: variant(values.variant),
-    contrastLevel,
-    isDark,
+    contrastLevel: values.contrast
+        ? parseFloat(values.contrast)
+        : 0,
+    isDark: values.dark,
     specVersion: "2025",
 });
 
@@ -49,7 +47,10 @@ const output = values.output ? Bun.file(values.output) : Bun.stdout;
 
 const { colors } = scheme;
 
-const theme = new Map<string, Hct>();
+const theme = new Map<string, Hct>([
+    ["source", scheme.sourceColorHct],
+]);
+
 for (const color of [
     colors.primaryPaletteKeyColor(),
     colors.secondaryPaletteKeyColor(),
@@ -186,6 +187,12 @@ await output.write(JSON.stringify(
     ),
 ));
 
+function parseColor(value: string) {
+    if (value.at(0) === "#")
+        return Hct.fromInt(argbFromHex(value));
+    return TonalPalette.fromHueAndChroma(parseInt(value), 120).keyColor;
+}
+
 function variant(type: string | undefined) {
     switch (type) {
         case "monochrome":
@@ -223,7 +230,7 @@ async function sourceColor(file: Bun.BunFile) {
             result.delete(argb);
     }
     const ranked = Score.score(result, { desired: 1 });
-    return ranked.at(0)!;
+    return Hct.fromInt(ranked.at(0)!);
 }
 
 function rgbFromArgb(argb: number) {
@@ -251,12 +258,12 @@ function toJson(type: string, color: Hct) {
             return color.toString();
         case "{hct}":
             return {
-                h: color.hue,
-                c: color.chroma,
-                t: color.tone,
+                h: Math.round(color.hue),
+                c: Math.round(color.chroma),
+                t: Math.round(color.tone),
             };
         case "[hct]":
-            return [color.hue, color.chroma, color.tone];
+            return [Math.round(color.hue), Math.round(color.chroma), Math.round(color.tone)];
         default:
             throw new Error(`Unknown json type: ${JSON.stringify(type)}.`);
     }
@@ -281,11 +288,30 @@ function* ansiPalette(scheme: DynamicScheme): Generator<[string, TonalPalette]> 
             yield [name, palettes.get(name)!];
             continue;
         }
-        const rotationDegrees = Math.min(differenceDegrees(hue, scheme.sourceColorHct.hue) * 0.5, 15.0);
-        const outputHue = sanitizeDegreesDouble(hue + rotationDegrees * rotationDirection(hue, scheme.primaryPalette.hue));
-        yield [name, TonalPalette.fromHueAndChroma(
-            outputHue,
-            scheme.errorPalette.chroma,
+        let amount = 0;
+        switch (scheme.variant) {
+            case Variant.NEUTRAL:
+                amount = scheme.platform === 'phone' ? 50 : 60;
+                break;
+            case Variant.TONAL_SPOT:
+                amount = scheme.platform === 'phone' ? 35 : 45;
+                break;
+            case Variant.EXPRESSIVE:
+                amount = scheme.platform === 'phone' ? 20 : 30;
+                break;
+            case Variant.VIBRANT:
+                amount = scheme.platform === 'phone' ? 5 : 15;
+                break;
+        }
+        yield [name, TonalPalette.fromInt(
+            Blend.cam16Ucs(
+                TonalPalette.fromHueAndChroma(
+                    hue,
+                    scheme.errorPalette.chroma,
+                ).keyColor.toInt(),
+                scheme.sourceColorArgb,
+                amount / 180,
+            ),
         )];
     }
 }
