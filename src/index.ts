@@ -241,7 +241,7 @@ function* ansiPalette(scheme: DynamicScheme): Generator<[string, TonalPalette]> 
 
 function* ansi(scheme: DynamicScheme) {
     const { colors } = scheme;
-    yield ["dark", colors.surface().getHct({
+    yield ["black", colors.surface().getHct({
         ...scheme,
         isDark: true,
     } as DynamicScheme)] as const;
