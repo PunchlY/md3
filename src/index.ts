@@ -263,7 +263,7 @@ function* ansi(scheme: DynamicScheme) {
             colors.errorContainer(),
             colors.onErrorContainer(),
         ].map((color) => [
-            color.name.replace(/^error/, name),
+            color.name.replace(/error/, name),
             color.getHct({
                 ...scheme,
                 errorPalette: palette,
