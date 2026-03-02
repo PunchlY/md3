@@ -5,15 +5,10 @@ import { parseArgs } from "util";
 import { argbFromHex, argbFromRgb, Blend, blueFromArgb, Cam16, DynamicColor, DynamicScheme, greenFromArgb, Hct, hexFromArgb, QuantizerCelebi, redFromArgb, Score, TonalPalette, Variant } from "@material/material-color-utilities";
 import { rgba } from "./png";
 
-const { values } = parseArgs({
+const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
     options: {
-        source: { type: "string" },
-        image: { type: "string" },
-        output: { type: "string" },
         json: { type: "string", default: "hex" },
-
-        preview: { type: "boolean", default: false },
 
         dark: { type: "boolean", default: false },
         contrast: { type: "string" },
@@ -21,6 +16,7 @@ const { values } = parseArgs({
 
         version: { type: "boolean", default: false },
     },
+    allowPositionals: true,
 });
 
 if (values.version) {
@@ -29,12 +25,9 @@ if (values.version) {
 }
 
 const scheme = new DynamicScheme({
-    sourceColorHct: values.source
-        ? parseColor(values.source)
-        : await sourceColor(values.image
-            ? Bun.file(values.image)
-            : Bun.stdin,
-        ),
+    sourceColorHct: positionals[0]
+        ? parseColor(positionals[0])
+        : await sourceColor(Bun.stdin),
     variant: variant(values.variant),
     contrastLevel: values.contrast
         ? parseFloat(values.contrast)
@@ -42,8 +35,6 @@ const scheme = new DynamicScheme({
     isDark: values.dark,
     specVersion: "2025",
 });
-
-const output = values.output ? Bun.file(values.output) : Bun.stdout;
 
 const { colors } = scheme;
 
@@ -165,7 +156,7 @@ for (const [name, palette] of ansiPalette(scheme)) {
     }
 }
 
-if (values.preview) {
+if (process.stderr.isTTY) {
     for (const [name, hct] of theme) {
         const bg = rgbFromArgb(hct.toInt());
         const fg = rgbFromArgb(Hct.from(
@@ -178,7 +169,7 @@ if (values.preview) {
     }
 }
 
-await output.write(JSON.stringify(
+console.log(JSON.stringify(
     Object.fromEntries(
         theme.entries().map(([name, hct]) => [
             name,
