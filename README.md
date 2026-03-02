@@ -5,11 +5,10 @@
 
 ```
 Usage:
-    md3 --source <hex> [Options]
+    md3 [Options] <color>
     md3 [Options] </path/to/image
 
 Options:
-    --source <hex>       以 16 进制颜色作为 source (例如"#ff0000")
     --dark
     --contrast <number>  数值范围为 -1 到 1. -1 表示最小对比度, 0 表示标准 (即按规范设计), 1 表示最大对比度.
     --variant <type>     主题变体, 支持: monochrome, neutral, vibrant, expressive, fidelity, content, rainbow, fruit-salad, tonal-spot
