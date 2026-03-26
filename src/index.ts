@@ -2,14 +2,15 @@
 
 import { version } from "../package.json";
 import { parseArgs } from "util";
-import { argbFromHex, argbFromRgb, Blend, blueFromArgb, Cam16, DynamicColor, DynamicScheme, greenFromArgb, Hct, hexFromArgb, QuantizerCelebi, redFromArgb, Score, TonalPalette, Variant } from "@material/material-color-utilities";
+import { argbFromHex, argbFromRgb, Cam16, DynamicColor, Hct, hexFromArgb, QuantizerCelebi, Score, TonalPalette, Variant } from "@material/material-color-utilities";
 import { rgba } from "./png";
+import { generateTheme } from "./theme";
+import { foreground, rgbFromArgb } from "./util";
+import { generateColor256 } from "./color256";
 
 const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
     options: {
-        json: { type: "string", default: "hex" },
-
         dark: { type: "boolean", default: false },
         contrast: { type: "string" },
         variant: { type: "string" },
@@ -24,7 +25,7 @@ if (values.version) {
     process.exit();
 }
 
-const scheme = new DynamicScheme({
+const theme = new Map(generateTheme({
     sourceColorHct: positionals[0]
         ? parseColor(positionals[0])
         : await sourceColor(Bun.stdin),
@@ -34,149 +35,107 @@ const scheme = new DynamicScheme({
         : 0,
     isDark: values.dark,
     specVersion: "2025",
-});
+}));
 
-const { colors } = scheme;
-
-const theme = new Map<string, Hct>([
-    ["source", scheme.sourceColorHct],
-]);
-
-for (const color of [
-    colors.primaryPaletteKeyColor(),
-    colors.secondaryPaletteKeyColor(),
-    colors.tertiaryPaletteKeyColor(),
-    colors.neutralPaletteKeyColor(),
-    colors.neutralVariantPaletteKeyColor(),
-    colors.errorPaletteKeyColor(),
-
-    colors.background(),
-    colors.onBackground(),
-
-    colors.surface(),
-    colors.surfaceDim(),
-    colors.surfaceBright(),
-
-    colors.surfaceContainerLowest(),
-    colors.surfaceContainerLow(),
-    colors.surfaceContainer(),
-    colors.surfaceContainerHigh(),
-    colors.surfaceContainerHighest(),
-
-    colors.onSurface(),
-    colors.surfaceVariant(),
-    colors.onSurfaceVariant(),
-
-    colors.outline(),
-    colors.outlineVariant(),
-
-    colors.inverseSurface(),
-    colors.inverseOnSurface(),
-
-    colors.shadow(),
-    colors.scrim(),
-    colors.surfaceTint(),
-
-    colors.primary(),
-    colors.primaryDim(),
-    colors.onPrimary(),
-    colors.primaryContainer(),
-    colors.onPrimaryContainer(),
-    colors.inversePrimary(),
-
-    colors.primaryFixed(),
-    colors.primaryFixedDim(),
-    colors.onPrimaryFixed(),
-    colors.onPrimaryFixedVariant(),
-    colors.secondary(),
-    colors.secondaryDim(),
-    colors.onSecondary(),
-    colors.secondaryContainer(),
-    colors.onSecondaryContainer(),
-
-    colors.secondaryFixed(),
-    colors.secondaryFixedDim(),
-    colors.onSecondaryFixed(),
-    colors.onSecondaryFixedVariant(),
-
-    colors.tertiary(),
-    colors.tertiaryDim(),
-    colors.onTertiary(),
-    colors.tertiaryContainer(),
-    colors.onTertiaryContainer(),
-
-    colors.tertiaryFixed(),
-    colors.tertiaryFixedDim(),
-    colors.onTertiaryFixed(),
-    colors.onTertiaryFixedVariant(),
-
-    colors.error(),
-    colors.errorDim(),
-    colors.onError(),
-    colors.errorContainer(),
-    colors.onErrorContainer(),
-]) {
-    if (!color)
-        continue;
-    theme.set(color.name, color.getHct(scheme));
-}
-
-theme.set("black", colors.surface().getHct({
-    ...scheme,
-    isDark: true,
-} as DynamicScheme));
-theme.set("white", colors.onSurface().getHct({
-    ...scheme,
-    isDark: true,
-} as DynamicScheme));
-theme.set("gray", colors.outline().getHct(scheme));
-theme.set("white_bright", colors.inverseSurface().getHct({
-    ...scheme,
-    isDark: true,
-} as DynamicScheme));
-
-for (const [name, palette] of ansiPalette(scheme)) {
-    for (const color of [
-        colors.errorPaletteKeyColor(),
-        colors.error(),
-        colors.errorDim(),
-        colors.onError(),
-        colors.errorContainer(),
-        colors.onErrorContainer(),
-    ]) {
-        if (!color)
-            continue;
-        theme.set(
-            color.name.replace("error", name),
-            color.getHct({
-                ...scheme,
-                errorPalette: palette,
-            } as DynamicScheme),
-        );
+function* colors(...names: string[]) {
+    for (const name of names) {
+        yield theme.get(name)!.toInt();
     }
 }
+
+const color256 = Iterator.concat(
+    colors(
+        "black",
+        "red_dim",
+        "green_dim",
+        "yellow_dim",
+        "blue_dim",
+        "magenta_dim",
+        "cyan_dim",
+        "white",
+        "gray",
+        "red",
+        "green",
+        "yellow",
+        "blue",
+        "magenta",
+        "cyan",
+        "white_bright",
+    ),
+    generateColor256(...colors(
+        "black",
+        "red_palette_key_color",
+        "green_palette_key_color",
+        "yellow_palette_key_color",
+        "blue_palette_key_color",
+        "magenta_palette_key_color",
+        "cyan_palette_key_color",
+        "white_bright",
+    )),
+).toArray();
 
 if (process.stderr.isTTY) {
+    function bg(color: number) {
+        const bg = rgbFromArgb(color);
+        return `\x1b[48;2;${bg.r};${bg.g};${bg.b}m`;
+    }
+
     for (const [name, hct] of theme) {
         const bg = rgbFromArgb(hct.toInt());
-        const fg = rgbFromArgb(Hct.from(
-            hct.hue,
-            hct.chroma,
-            DynamicColor.foregroundTone(hct.tone, 7.5),
-        ).toInt());
+        const fg = rgbFromArgb(foreground(hct));
 
-        console.error(`\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[2K%j %s\x1b[0m`, toJson(values.json, hct), name);
+        console.error(`\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[2K%s %s\x1b[0m`, hexFromArgb(hct.toInt()), name);
+    }
+
+    for (let i = 0; i < 16; i++) {
+        await Bun.stderr.write(`${bg(color256[i]!)}  `);
+    }
+    console.error("\x1b[0m");
+    for (let v = 0; v < 12; v++) {
+        await Bun.stderr.write(`${bg(color256[232 + v * 2]!)}  ${bg(color256[8]!)}  `);
+        for (let u = 0; u < 12; u++) {
+            let x = (u + 0.5) / 12 * 2 - 1;
+            let y = (v + 0.5) / 12 * 2 - 1;
+
+            let z = 1 - Math.abs(x) - Math.abs(y);
+
+            if (z < 0) {
+                const ox = x;
+                x = (1 - Math.abs(y)) * Math.sign(ox);
+                y = (1 - Math.abs(ox)) * Math.sign(y);
+                z = 1 - Math.abs(x) - Math.abs(y);
+            }
+
+            const inv = 1 / Math.max(Math.abs(x), Math.abs(y), Math.abs(z));
+
+            const cx = x * inv;
+            const cy = y * inv;
+            const cz = z * inv;
+
+            const r = Math.round((cx + 1) * 0.5 * 5);
+            const g = Math.round((cy + 1) * 0.5 * 5);
+            const b = Math.round((cz + 1) * 0.5 * 5);
+
+            const i = r * 36 + g * 6 + b + 16;
+            await Bun.stderr.write(`${bg(color256[i]!)}  `);
+        }
+        await Bun.stderr.write(`${bg(color256[7]!)}  ${bg(color256[232 + 23 - v * 2]!)}  \x1b[0m\n`);
     }
 }
 
-console.log(JSON.stringify(
-    Object.fromEntries(
-        theme.entries().map(([name, hct]) => [
-            name,
-            toJson(values.json, hct),
-        ]),
-    ),
-));
+console.log(JSON.stringify(Object.fromEntries(
+    Iterator.concat<[string, number]>(
+        theme
+            .entries()
+            .map(([key, value]) => [key, value.toInt()]),
+        color256
+            .values()
+            .map((value, index) => [`color${index}`, value]),
+    ).map(([key, argb]) => [key, {
+        hex: hexFromArgb(argb),
+        rgb: rgbFromArgb(argb),
+    }]),
+)));
 
 function parseColor(value: string) {
     if (value.at(0) === "#")
@@ -222,87 +181,4 @@ async function sourceColor(file: Bun.BunFile) {
     }
     const ranked = Score.score(result, { desired: 1 });
     return Hct.fromInt(ranked.at(0)!);
-}
-
-function rgbFromArgb(argb: number) {
-    return {
-        r: redFromArgb(argb),
-        g: greenFromArgb(argb),
-        b: blueFromArgb(argb),
-    };
-}
-
-function toJson(type: string, color: Hct) {
-    switch (type) {
-        case "hex":
-            return hexFromArgb(color.toInt());
-        case "argb":
-            return color.toInt();
-        case "rgb":
-            return color.toInt() >>> 8;
-        case "{rgb}":
-            return rgbFromArgb(color.toInt());
-        case "[rgb]":
-            const { r, g, b } = rgbFromArgb(color.toInt());
-            return [r, g, b];
-        case "hct":
-            return color.toString();
-        case "{hct}":
-            return {
-                h: Math.round(color.hue),
-                c: Math.round(color.chroma),
-                t: Math.round(color.tone),
-            };
-        case "[hct]":
-            return [Math.round(color.hue), Math.round(color.chroma), Math.round(color.tone)];
-        default:
-            throw new Error(`Unknown json type: ${JSON.stringify(type)}.`);
-    }
-}
-
-function* ansiPalette(scheme: DynamicScheme): Generator<[string, TonalPalette]> {
-    const palettes = new Map<string, TonalPalette>();
-
-    palettes.set("red", scheme.errorPalette);
-
-    for (const [name, hue] of Object.entries({
-        red: 25,
-        green: 145,
-        yellow: 85,
-        blue: 265,
-        magenta: 355,
-        cyan: 205,
-        orange: 55,
-        purple: 325,
-    })) {
-        if (palettes.has(name)) {
-            yield [name, palettes.get(name)!];
-            continue;
-        }
-        let amount = 0;
-        switch (scheme.variant) {
-            case Variant.NEUTRAL:
-                amount = scheme.platform === 'phone' ? 50 : 60;
-                break;
-            case Variant.TONAL_SPOT:
-                amount = scheme.platform === 'phone' ? 35 : 45;
-                break;
-            case Variant.EXPRESSIVE:
-                amount = scheme.platform === 'phone' ? 20 : 30;
-                break;
-            case Variant.VIBRANT:
-                amount = scheme.platform === 'phone' ? 5 : 15;
-                break;
-        }
-        yield [name, TonalPalette.fromInt(
-            Blend.cam16Ucs(
-                TonalPalette.fromHueAndChroma(
-                    hue,
-                    scheme.errorPalette.chroma,
-                ).keyColor.toInt(),
-                scheme.sourceColorArgb,
-                amount / 180,
-            ),
-        )];
-    }
 }

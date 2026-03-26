@@ -17,17 +17,17 @@
     url = "https://registry.npmjs.org/@material/material-color-utilities/-/material-color-utilities-0.4.0.tgz";
     hash = "sha512-dlq6VExJReb8dhjj3a/yTigr3ncNwoFmL5Iy2ENtbDX03EmNeOEdZ+vsaGrj7RTuO+mB7L58II4LCsl4NpM8uw==";
   };
-  "@types/bun@1.3.8" = fetchurl {
-    url = "https://registry.npmjs.org/@types/bun/-/bun-1.3.8.tgz";
-    hash = "sha512-3LvWJ2q5GerAXYxO2mffLTqOzEu5qnhEAlh48Vnu8WQfnmSwbgagjGZV6BoHKJztENYEDn6QmVd949W4uESRJA==";
+  "@types/bun@1.3.11" = fetchurl {
+    url = "https://registry.npmjs.org/@types/bun/-/bun-1.3.11.tgz";
+    hash = "sha512-5vPne5QvtpjGpsGYXiFyycfpDF2ECyPcTSsFBMa0fraoxiQyMJ3SmuQIGhzPg2WJuWxVBoxWJ2kClYTcw/4fAg==";
   };
   "@types/node@25.0.9" = fetchurl {
     url = "https://registry.npmjs.org/@types/node/-/node-25.0.9.tgz";
     hash = "sha512-/rpCXHlCWeqClNBwUhDcusJxXYDjZTyE8v5oTO7WbL8eij2nKhUeU89/6xgjU7N4/Vh3He0BtyhJdQbDyhiXAw==";
   };
-  "bun-types@1.3.8" = fetchurl {
-    url = "https://registry.npmjs.org/bun-types/-/bun-types-1.3.8.tgz";
-    hash = "sha512-fL99nxdOWvV4LqjmC+8Q9kW3M4QTtTR1eePs94v5ctGqU8OeceWrSUaRw3JYb7tU3FkMIAjkueehrHPPPGKi5Q==";
+  "bun-types@1.3.11" = fetchurl {
+    url = "https://registry.npmjs.org/bun-types/-/bun-types-1.3.11.tgz";
+    hash = "sha512-1KGPpoxQWl9f6wcZh57LvrPIInQMn2TQ7jsgxqpRzg+l0QPOFvJVH7HmvHo/AiPgwXy+/Thf6Ov3EdVn1vOabg==";
   };
   "fast-png@8.0.0" = fetchurl {
     url = "https://registry.npmjs.org/fast-png/-/fast-png-8.0.0.tgz";
