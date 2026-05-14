@@ -96,7 +96,7 @@ if (process.stderr.isTTY) {
     const fg = rgbFromArgb(foreground(hct));
 
     console.error(
-      `\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[2K%s %s\x1b[0m`,
+      `\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[0K%s %s\x1b[0m`,
       hexFromArgb(hct.toInt()),
       name,
     );

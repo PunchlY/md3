@@ -1,5 +1,4 @@
 import { Cam16, lerp } from "@material/material-color-utilities";
-import type { FixedArray } from "./util";
 
 function lerpArray(
   t: number,
