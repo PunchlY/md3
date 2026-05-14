@@ -105,10 +105,10 @@ if (process.stderr.isTTY) {
     process.stderr.write(`${bg(color256[i]!)}  `);
   }
   console.error("\x1b[0m");
-  const R = labFromArgb(0xffff0000) as FixedArray<number, 3>;
-  const G = labFromArgb(0xff00ff00) as FixedArray<number, 3>;
-  const M = labFromArgb(0xffff00ff) as FixedArray<number, 3>;
-  const B = labFromArgb(0xff0000ff) as FixedArray<number, 3>;
+  const R = labFromArgb(0xffff0000);
+  const G = labFromArgb(0xff00ff00);
+  const M = labFromArgb(0xffff00ff);
+  const B = labFromArgb(0xff0000ff);
   for (let v = 0; v < 12; v++) {
     process.stderr.write(
       `${bg(color256[232 + v * 2]!)}  ${bg(color256[8]!)}  `,

@@ -14,14 +14,14 @@ function* colorPalette(
   palettes.set("red", scheme.errorPalette);
 
   for (const [name, hue] of Object.entries({
-    red: 25,
-    green: 145,
-    yellow: 85,
-    blue: 265,
-    magenta: 355,
-    cyan: 205,
-    orange: 55,
-    purple: 325,
+    red: 27,
+    green: 142,
+    yellow: 98,
+    blue: 288,
+    magenta: 352,
+    cyan: 197,
+    orange: 47,
+    purple: 317,
   })) {
     if (palettes.has(name)) {
       yield [name, palettes.get(name)!];

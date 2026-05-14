@@ -27,6 +27,12 @@ export function lerpArray(
   t: number,
   a: FixedArray<number, 3>,
   b: FixedArray<number, 3>,
-) {
-  return a.map((v, i) => lerp(v, b[i]!, t)) as FixedArray<number, 3>;
+): FixedArray<number, 3>;
+export function lerpArray(
+  t: number,
+  a: number[],
+  b: number[],
+): FixedArray<number, 3>;
+export function lerpArray(t: number, a: number[], b: number[]) {
+  return a.map((v, i) => lerp(v, b[i]!, t));
 }
