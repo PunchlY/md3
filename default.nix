@@ -2,30 +2,29 @@
   stdenv,
   bun2nix,
   bun,
-}:
-let
+}: let
   package = builtins.fromJSON (builtins.readFile ./package.json);
 in
-stdenv.mkDerivation (finalAttrs: {
-  pname = package.name;
-  version = package.version;
+  stdenv.mkDerivation (finalAttrs: {
+    pname = package.name;
+    version = package.version;
 
-  src = ./.;
+    src = ./.;
 
-  nativeBuildInputs = [
-    bun2nix.hook
-  ];
-  buildInputs = [ bun ];
+    nativeBuildInputs = [
+      bun2nix.hook
+    ];
+    buildInputs = [bun];
 
-  bunDeps = bun2nix.fetchBunDeps {
-    bunNix = ./bun.nix;
-  };
+    bunDeps = bun2nix.fetchBunDeps {
+      bunNix = ./bun.nix;
+    };
 
-  bunBuildFlags = [
-    package.module
-    "--outfile"
-    finalAttrs.pname
-    "--target=bun"
-    "--minify"
-  ];
-})
+    bunBuildFlags = [
+      package.module
+      "--outfile"
+      finalAttrs.pname
+      "--target=bun"
+      "--minify"
+    ];
+  })
