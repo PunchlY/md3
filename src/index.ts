@@ -2,9 +2,11 @@
 
 import {
   argbFromHex,
+  argbFromLab,
   argbFromRgb,
   Hct,
   hexFromArgb,
+  labFromArgb,
   QuantizerCelebi,
   Score,
   TonalPalette,
@@ -15,7 +17,7 @@ import { parseArgs } from "util";
 import { version } from "../package.json";
 import { generateColor256 } from "./color256";
 import { generateTheme } from "./theme";
-import { foreground, rgbFromArgb } from "./util";
+import { foreground, lerpArray, rgbFromArgb } from "./util";
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
@@ -46,14 +48,12 @@ const theme = new Map(
   }),
 );
 
-function* colors(...names: string[]) {
-  for (const name of names) {
-    yield theme.get(name)!.toInt();
-  }
+function color(name: string) {
+  return theme.get(name)!.toInt();
 }
 
 const color256 = Iterator.concat(
-  colors(
+  [
     "black",
     "red_dim",
     "green_dim",
@@ -70,19 +70,17 @@ const color256 = Iterator.concat(
     "magenta",
     "cyan",
     "white_bright",
-  ),
-  generateColor256(
-    ...colors(
-      "black",
-      "red_palette_key_color",
-      "green_palette_key_color",
-      "yellow_palette_key_color",
-      "blue_palette_key_color",
-      "magenta_palette_key_color",
-      "cyan_palette_key_color",
-      "white_bright",
-    ),
-  ),
+  ].map(color),
+  generateColor256({
+    black: color("black"),
+    red: color("red_dim"),
+    green: color("green"),
+    yellow: color("yellow"),
+    blue: color("blue_dim"),
+    magenta: color("magenta_dim"),
+    cyan: color("cyan"),
+    white: color("white_bright"),
+  }),
 ).toArray();
 
 if (process.stderr.isTTY) {
@@ -91,12 +89,13 @@ if (process.stderr.isTTY) {
     const bg = rgbFromArgb(color);
     return `\x1b[48;2;${bg.r};${bg.g};${bg.b}m`;
   }
+  function fg(color: number) {
+    const fg = rgbFromArgb(color);
+    return `\x1b[38;2;${fg.r};${fg.g};${fg.b}m`;
+  }
   for (const [name, hct] of theme) {
-    const bg = rgbFromArgb(hct.toInt());
-    const fg = rgbFromArgb(foreground(hct));
-
     console.error(
-      `\x1b[48;2;${bg.r};${bg.g};${bg.b}m\x1b[38;2;${fg.r};${fg.g};${fg.b}m\x1b[0K%s %s\x1b[0m`,
+      `${bg(hct.toInt())}${fg(foreground(hct))}\x1b[0K%s %s\x1b[0m`,
       hexFromArgb(hct.toInt()),
       name,
     );
@@ -106,33 +105,23 @@ if (process.stderr.isTTY) {
     process.stderr.write(`${bg(color256[i]!)}  `);
   }
   console.error("\x1b[0m");
+  const R = labFromArgb(0xffff0000) as FixedArray<number, 3>;
+  const G = labFromArgb(0xff00ff00) as FixedArray<number, 3>;
+  const M = labFromArgb(0xffff00ff) as FixedArray<number, 3>;
+  const B = labFromArgb(0xff0000ff) as FixedArray<number, 3>;
   for (let v = 0; v < 12; v++) {
     process.stderr.write(
       `${bg(color256[232 + v * 2]!)}  ${bg(color256[8]!)}  `,
     );
+
+    const Y = lerpArray(v / 11, R, G);
+    const P = lerpArray(v / 11, M, B);
     for (let u = 0; u < 12; u++) {
-      let x = ((u + 0.5) / 12) * 2 - 1;
-      let y = ((v + 0.5) / 12) * 2 - 1;
-
-      let z = 1 - Math.abs(x) - Math.abs(y);
-
-      if (z < 0) {
-        const ox = x;
-        x = (1 - Math.abs(y)) * Math.sign(ox);
-        y = (1 - Math.abs(ox)) * Math.sign(y);
-        z = 1 - Math.abs(x) - Math.abs(y);
-      }
-
-      const inv = 1 / Math.max(Math.abs(x), Math.abs(y), Math.abs(z));
-
-      const cx = x * inv;
-      const cy = y * inv;
-      const cz = z * inv;
-
-      const r = Math.round((cx + 1) * 0.5 * 5);
-      const g = Math.round((cy + 1) * 0.5 * 5);
-      const b = Math.round((cz + 1) * 0.5 * 5);
-
+      const color = argbFromLab(...lerpArray(u / 11, Y, P));
+      const rgb = rgbFromArgb(color);
+      const r = Math.round((rgb.r / 255) * 5);
+      const g = Math.round((rgb.g / 255) * 5);
+      const b = Math.round((rgb.b / 255) * 5);
       const i = r * 36 + g * 6 + b + 16;
       process.stderr.write(`${bg(color256[i]!)}  `);
     }

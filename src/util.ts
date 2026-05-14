@@ -3,6 +3,7 @@ import {
   DynamicColor,
   greenFromArgb,
   Hct,
+  lerp,
   redFromArgb,
 } from "@material/material-color-utilities";
 
@@ -20,4 +21,12 @@ export function rgbFromArgb(argb: number) {
     g: greenFromArgb(argb),
     b: blueFromArgb(argb),
   };
+}
+
+export function lerpArray(
+  t: number,
+  a: FixedArray<number, 3>,
+  b: FixedArray<number, 3>,
+) {
+  return a.map((v, i) => lerp(v, b[i]!, t)) as FixedArray<number, 3>;
 }

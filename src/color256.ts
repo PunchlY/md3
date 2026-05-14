@@ -1,15 +1,26 @@
-import { Cam16, lerp } from "@material/material-color-utilities";
+import { Cam16 } from "@material/material-color-utilities";
+import { lerpArray } from "./util";
 
-function lerpArray(
-  t: number,
-  a: FixedArray<number, 3>,
-  b: FixedArray<number, 3>,
-) {
-  return a.map((v, i) => lerp(v, b[i]!, t)) as [number, number, number];
-}
-
-export function* generateColor256(...colors: number[]) {
-  const labs = colors.map((color) => {
+export function* generateColor256(colors: {
+  black: number;
+  red: number;
+  green: number;
+  yellow: number;
+  blue: number;
+  magenta: number;
+  cyan: number;
+  white: number;
+}) {
+  const labs = [
+    colors.black,
+    colors.red,
+    colors.green,
+    colors.yellow,
+    colors.blue,
+    colors.magenta,
+    colors.cyan,
+    colors.white,
+  ].map((color) => {
     const { jstar, astar, bstar } = Cam16.fromInt(color);
     return [jstar, astar, bstar] as [number, number, number];
   }) as FixedArray<FixedArray<number, 3>, 8>;
