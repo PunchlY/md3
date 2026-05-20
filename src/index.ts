@@ -1,15 +1,12 @@
 #!/usr/bin/env bun
 
 import {
-  argbFromHex,
   argbFromLab,
   argbFromRgb,
-  Hct,
   hexFromArgb,
   labFromArgb,
   QuantizerCelebi,
   Score,
-  TonalPalette,
   Variant,
 } from "@material/material-color-utilities";
 import * as png from "fast-png";
@@ -17,9 +14,9 @@ import { parseArgs } from "util";
 import { version } from "../package.json";
 import { generateColor256 } from "./color256";
 import { generateTheme } from "./theme";
-import { foreground, lerpArray, rgbFromArgb } from "./util";
+import { lerpArray, log, rgbFromArgb } from "./util";
 
-const { values, positionals } = parseArgs({
+const { values } = parseArgs({
   args: process.argv.slice(2),
   options: {
     dark: { type: "boolean", default: false },
@@ -28,7 +25,6 @@ const { values, positionals } = parseArgs({
 
     version: { type: "boolean", default: false },
   },
-  allowPositionals: true,
 });
 
 if (values.version) {
@@ -36,20 +32,19 @@ if (values.version) {
   process.exit();
 }
 
+const pixels = await Array.fromAsync(getPixels(Bun.stdin.image()));
+
 const theme = new Map(
   generateTheme({
-    sourceColorHct: positionals[0]
-      ? parseColor(positionals[0])
-      : await sourceColor(Bun.stdin.image()),
+    sourceColors: sourceColor(pixels),
     variant: variant(values.variant),
     contrastLevel: values.contrast ? parseFloat(values.contrast) : 0,
     isDark: values.dark,
-    specVersion: "2025",
   }),
 );
 
 function color(name: string) {
-  return theme.get(name)!.toInt();
+  return theme.get(name)!;
 }
 
 const color256 = Iterator.concat(
@@ -73,46 +68,33 @@ const color256 = Iterator.concat(
   ].map(color),
   generateColor256({
     black: color("black"),
-    red: color("red_dim"),
-    green: color("green"),
-    yellow: color("yellow"),
-    blue: color("blue_dim"),
-    magenta: color("magenta_dim"),
-    cyan: color("cyan"),
+    red: color("red_palette_key_color"),
+    lime: color("green_palette_key_color"),
+    yellow: color("yellow_palette_key_color"),
+    blue: color("blue_palette_key_color"),
+    magenta: color("magenta_palette_key_color"),
+    cyan: color("cyan_palette_key_color"),
     white: color("white_bright"),
   }),
 ).toArray();
 
 if (process.stderr.isTTY) {
   process.stderr.write("\x1b[?7l");
-  function bg(color: number) {
-    const bg = rgbFromArgb(color);
-    return `\x1b[48;2;${bg.r};${bg.g};${bg.b}m`;
-  }
-  function fg(color: number) {
-    const fg = rgbFromArgb(color);
-    return `\x1b[38;2;${fg.r};${fg.g};${fg.b}m`;
-  }
-  for (const [name, hct] of theme) {
-    console.error(
-      `${bg(hct.toInt())}${fg(foreground(hct))}\x1b[0K%s %s\x1b[0m`,
-      hexFromArgb(hct.toInt()),
-      name,
-    );
+  for (const [name, color] of theme) {
+    log(color, "\x1b[0K%s %s\n", hexFromArgb(color), name);
   }
 
   for (let i = 0; i < 16; i++) {
-    process.stderr.write(`${bg(color256[i]!)}  `);
+    log(color256[i]!, "  ");
   }
-  console.error("\x1b[0m");
+  process.stderr.write("\n");
   const R = labFromArgb(0xffff0000);
   const G = labFromArgb(0xff00ff00);
   const M = labFromArgb(0xffff00ff);
   const B = labFromArgb(0xff0000ff);
   for (let v = 0; v < 12; v++) {
-    process.stderr.write(
-      `${bg(color256[232 + v * 2]!)}  ${bg(color256[8]!)}  `,
-    );
+    log(color256[232 + v * 2]!, "  ");
+    log(color256[8]!, "  ");
 
     const Y = lerpArray(v / 11, R, G);
     const P = lerpArray(v / 11, M, B);
@@ -123,11 +105,11 @@ if (process.stderr.isTTY) {
       const g = Math.round((rgb.g / 255) * 5);
       const b = Math.round((rgb.b / 255) * 5);
       const i = r * 36 + g * 6 + b + 16;
-      process.stderr.write(`${bg(color256[i]!)}  `);
+      log(color256[i]!, "  ");
     }
-    process.stderr.write(
-      `${bg(color256[7]!)}  ${bg(color256[232 + 23 - v * 2]!)}  \x1b[0m\n`,
-    );
+    log(color256[7]!, "  ");
+    log(color256[232 + 23 - v * 2]!, "  ");
+    process.stderr.write("\n");
   }
   process.stderr.write("\x1b[?7h");
 }
@@ -136,7 +118,7 @@ console.log(
   JSON.stringify(
     Object.fromEntries(
       Iterator.concat<[string, number]>(
-        theme.entries().map(([key, value]) => [key, value.toInt()]),
+        theme,
         color256.values().map((value, index) => [`color${index}`, value]),
       ).map(([key, argb]) => [
         key,
@@ -148,11 +130,6 @@ console.log(
     ),
   ),
 );
-
-function parseColor(value: string) {
-  if (value.at(0) === "#") return Hct.fromInt(argbFromHex(value));
-  return TonalPalette.fromHueAndChroma(parseInt(value), 120).keyColor;
-}
 
 function variant(type: string | undefined) {
   switch (type) {
@@ -182,7 +159,7 @@ function variant(type: string | undefined) {
   }
 }
 
-async function sourceColor(image: Bun.Image) {
+async function* getPixels(image: Bun.Image) {
   image = image
     .resize(256, 256, {
       filter: "mks2021",
@@ -193,7 +170,6 @@ async function sourceColor(image: Bun.Image) {
 
   const buffer = await image.buffer();
 
-  const pixels: number[] = [];
   const value = png.decode(buffer);
   const paletteData = png.convertIndexedToRgb(value);
   const paletteChannels = value.palette![0]!.length;
@@ -204,12 +180,11 @@ async function sourceColor(image: Bun.Image) {
     const red = paletteData[paletteOffset]!;
     const green = paletteData[paletteOffset + 1]!;
     const blue = paletteData[paletteOffset + 2]!;
-    const color = argbFromRgb(red, green, blue);
-    pixels.push(color);
+    yield argbFromRgb(red, green, blue);
   }
+}
 
+function sourceColor(pixels: number[]) {
   const result = QuantizerCelebi.quantize(pixels, 128);
-  const ranked = Score.score(result, { desired: 1 });
-
-  return Hct.fromInt(ranked.at(0)!);
+  return Score.score(result, { desired: 24 });
 }

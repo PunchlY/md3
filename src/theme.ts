@@ -1,71 +1,81 @@
 import {
-  Blend,
   DynamicScheme,
-  type Hct,
+  differenceDegrees,
+  Hct,
   TonalPalette,
-  Variant,
+  type Variant,
 } from "@material/material-color-utilities";
 
-function* colorPalette(
-  scheme: DynamicScheme,
-): Generator<[string, TonalPalette]> {
-  const palettes = new Map<string, TonalPalette>();
+const centroids = {
+  red: 27,
+  yellow: 71,
+  green: 142,
+  cyan: 197,
+  blue: 274,
+  magenta: 335,
+};
 
-  palettes.set("red", scheme.errorPalette);
-
-  for (const [name, hue] of Object.entries({
-    red: 27,
-    green: 142,
-    yellow: 98,
-    blue: 288,
-    magenta: 352,
-    cyan: 197,
-    orange: 47,
-    purple: 317,
-  })) {
-    if (palettes.has(name)) {
-      yield [name, palettes.get(name)!];
-      continue;
-    }
-    let amount = 0;
-    switch (scheme.variant) {
-      case Variant.NEUTRAL:
-        amount = scheme.platform === "phone" ? 50 : 60;
-        break;
-      case Variant.TONAL_SPOT:
-        amount = scheme.platform === "phone" ? 35 : 45;
-        break;
-      case Variant.EXPRESSIVE:
-        amount = scheme.platform === "phone" ? 20 : 30;
-        break;
-      case Variant.VIBRANT:
-        amount = scheme.platform === "phone" ? 5 : 15;
-        break;
-    }
-    yield [
-      name,
-      TonalPalette.fromInt(
-        Blend.cam16Ucs(
-          TonalPalette.fromHueAndChroma(
-            hue,
-            scheme.errorPalette.chroma,
-          ).keyColor.toInt(),
-          scheme.sourceColorArgb,
-          amount / 180,
-        ),
-      ),
-    ];
-  }
+function nearestNamedColors(color: Hct) {
+  return Object.entries(centroids)
+    .map(([name, hue]) => [name, differenceDegrees(color.hue, hue)] as const)
+    .sort(([, a], [, b]) => a - b)[0]![0];
 }
 
-export function* generateTheme(
-  ...args: ConstructorParameters<typeof DynamicScheme>
-): Generator<[string, Hct]> {
-  const scheme = new DynamicScheme(...args);
+interface Options {
+  sourceColors: number[];
+  variant: Variant;
+  contrastLevel: number;
+  isDark: boolean;
+}
+
+export function* generateTheme(options: Options): Generator<[string, number]> {
+  const sourceColors = Object.entries(
+    Object.groupBy(
+      options.sourceColors
+        .map(Hct.fromInt)
+        .filter(({ chroma, tone }) => chroma >= 12 && tone >= 8 && tone <= 95),
+      nearestNamedColors,
+    ),
+  ).map(
+    ([name, colors]) =>
+      [name, colors!.sort((a, b) => b.chroma - a.chroma)[0]!] as const,
+  );
+
+  let rmsChroma =
+    Math.hypot(...sourceColors.map(([, { chroma }]) => chroma)) /
+    Math.sqrt(sourceColors.length);
+
+  const palettes = new Map(
+    sourceColors.map(([name, { hue }]) => {
+      return [name, TonalPalette.fromHueAndChroma(hue, rmsChroma)];
+    }),
+  );
+
+  const sourceColorHct = Hct.fromInt(options.sourceColors.at(0)!);
+
+  const scheme = new DynamicScheme({
+    sourceColorHct,
+    variant: options.variant,
+    contrastLevel: options.contrastLevel,
+    isDark: options.isDark,
+    specVersion: "2025",
+    platform: "phone",
+    errorPalette: palettes.get("red"),
+  });
+
+  if (palettes.size === 0) {
+    palettes.set("red", scheme.errorPalette);
+    rmsChroma = scheme.errorPalette.chroma;
+  }
+
+  for (const [name, hue] of Object.entries(centroids)) {
+    if (palettes.has(name)) continue;
+    palettes.set(name, TonalPalette.fromHueAndChroma(hue, rmsChroma));
+  }
 
   const { colors } = scheme;
 
-  yield ["source", scheme.sourceColorHct];
+  yield ["source", scheme.sourceColorHct.toInt()];
 
   for (const color of [
     colors.primaryPaletteKeyColor(),
@@ -142,33 +152,38 @@ export function* generateTheme(
     colors.onErrorContainer(),
   ]) {
     if (!color) continue;
-    yield [color.name, color.getHct(scheme)];
+    yield [color.name, color.getArgb(scheme)];
   }
+
+  const background = colors.surface().getHct({
+    ...scheme,
+    isDark: true,
+  } as DynamicScheme);
 
   yield [
     "black",
-    colors.surface().getHct({
+    colors.surface().getArgb({
       ...scheme,
       isDark: true,
     } as DynamicScheme),
   ];
   yield [
     "white",
-    colors.onSurface().getHct({
+    colors.onSurface().getArgb({
       ...scheme,
       isDark: true,
     } as DynamicScheme),
   ];
-  yield ["gray", colors.outline().getHct(scheme)];
+  yield ["gray", colors.outline().getArgb(scheme)];
   yield [
     "white_bright",
-    colors.inverseSurface().getHct({
+    colors.inverseSurface().getArgb({
       ...scheme,
       isDark: true,
     } as DynamicScheme),
   ];
 
-  for (const [name, palette] of colorPalette(scheme)) {
+  for (const [name, palette] of palettes) {
     for (const color of [
       colors.errorPaletteKeyColor(),
       colors.error(),
@@ -180,7 +195,7 @@ export function* generateTheme(
       if (!color) continue;
       yield [
         color.name.replace("error", name),
-        color.getHct({
+        color.getArgb({
           ...scheme,
           errorPalette: palette,
         } as DynamicScheme),

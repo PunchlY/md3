@@ -1,10 +1,10 @@
-import { Cam16 } from "@material/material-color-utilities";
+import { argbFromLab, labFromArgb } from "@material/material-color-utilities";
 import { lerpArray } from "./util";
 
 export function* generateColor256(colors: {
   black: number;
   red: number;
-  green: number;
+  lime: number;
   yellow: number;
   blue: number;
   magenta: number;
@@ -14,16 +14,13 @@ export function* generateColor256(colors: {
   const labs = [
     colors.black,
     colors.red,
-    colors.green,
+    colors.lime,
     colors.yellow,
     colors.blue,
     colors.magenta,
     colors.cyan,
     colors.white,
-  ].map((color) => {
-    const { jstar, astar, bstar } = Cam16.fromInt(color);
-    return [jstar, astar, bstar] as [number, number, number];
-  }) as FixedArray<FixedArray<number, 3>, 8>;
+  ].map(labFromArgb) as FixedArray<FixedArray<number, 3>, 8>;
 
   for (let r = 0; r < 6; r++) {
     const c0 = lerpArray(r / 5, labs[0], labs[1]);
@@ -38,13 +35,13 @@ export function* generateColor256(colors: {
       for (let b = 0; b < 6; b++) {
         const c6 = lerpArray(b / 5, c4, c5);
 
-        yield Cam16.fromUcs(...c6).toInt();
+        yield argbFromLab(...c6);
       }
     }
   }
 
   for (let i = 0; i < 24; i++) {
     const c0 = lerpArray((i + 1) / 25, labs[0], labs[7]);
-    yield Cam16.fromUcs(...c0).toInt();
+    yield argbFromLab(...c0);
   }
 }
